@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/css/bootstrap.min.css">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/js/bootstrap.min.js"></script>
+    <script src="https://code.jquery.com/jquery-1.11.1.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/jquery.validation/1.16.0/jquery.validate.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/jquery.validation/1.16.0/additional-methods.min.js"></script>
+
+</head>
+<style>
+    center {
+        padding: 5%;
+    }
+    
+    .sensorData {
+        font-size: 14px;
+    }
+    
+    .todayResCol {
+        background-color: red;
+    }
+    
+    .sensorTemperatureCol {
+        background-color: yellowgreen;
+    }
+    
+    .resultResCol {
+        background-color: yellow;
+    }
+    
+    .button-group {
+        text-align: center;
+        padding: 2%;
+    }
+    
+    .enterSensor {
+        text-align: center;
+    }
+</style>
+
+<body>
+    <div class="row">
+        <div class="col-lg-4 col-md-4 col-sm-4 col-xs-4">
+
+        </div>
+        <div class="col-lg-4 col-md-4 col-sm-4 col-xs-4 enterSensor">
+            <form id="myform">
+                <label for="field">Enter Sensor Temp</label>
+                <input type="number" class="form-control input-sm" id="field" name="field" placeholder="Enter Sensor Temperature">
+                <span class="text-danger" id="error"></span>
+            </form>
+        </div>
+        <div class="col-lg-4 col-md-4 col-sm-4 col-xs-4">
+
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-lg-12 col-md-12 col-sm-12 col-xs-12 button-group">
+            <button class="1 btn btn-primary">Comfy</button>
+            <button class="2 btn btn-primary">Hot</button>
+            <button class="3 btn btn-primary">Cold</button>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-lg-4 col-md-4 col-sm-4 sensorTemperatureCol">
+            <H4><b>Sensor Data</b></H4>
+            <div class="sensorTemperature"></div>
+        </div>
+        <div class="col-lg-4 col-md-4 col-sm-4 todayResCol">
+            <H4><b>IR Data</b></H4>
+            <div class="todayRes"></div>
+        </div>
+        <div class="col-lg-4 col-md-4 col-sm-4 resultResCol">
+            <H4><b>Result Data</b></H4>
+            <div class="resultRes"></div>
+        </div>
+    </div>
+</body>
+
+<script>
+    $(document).ready(function() {
+        var sensorData;
+        var reqData = {
+            dataSource: 101
+        };
+        var macAddress = '1a-b2-c1';
+
+        function dynamicELe(classname, object, keyName) {
+            $('.' + classname + '').append('<div>Temperature : ' + object.temperature + '<div>');
+            if (classname != 'resultRes') {
+                $('.' + classname + '').append('<div>KeyPressed : ' + keyName + '<div>');
+            }
+            if(object.comment){
+              $('.' + classname + '').append('<div>IRComment : ' + object.comment + '<div>');
+            }
+        }
+        $("button").click(function(event) {
+            var inputTemp = Number($('#field').val());
+            if (inputTemp < 1 || inputTemp > 36 || inputTemp == undefined) {
+                $('#error').text('Check Min 0 and Max 35');
+            } else {
+                $('#error').text('');
+                //Getting Sensor Data 
+                $.post("21", reqData, function(storedData, resResult) {
+                  
+                    dynamicELe('sensorTemperature', storedData, event.currentTarget.innerText);
+                    var reqArray = [];
+
+                    var sensorTemperature = {
+                        "dataSource": storedData.dataSource,
+                        "macAddress": macAddress,
+                        "temperature": storedData.temperature,
+                        "comment": storedData.comment,
+                        "isActive": storedData.isActive,
+                        "temperatureUnit": storedData.temperatureUnit,
+                        "dataSourceLocation": {
+                            "latitude": storedData.dataSourceLocation.latitude,
+                            "longitude": storedData.dataSourceLocation.longitude
+                        },
+                        "keyInput": {
+                            "keyId": event.target.classList[0],
+                            "keyName": event.target.innerHTML
+                        },
+                        "inputcommand": {
+                            "timeInterval": storedData.inputcommand.timeInterval,
+                            "function": storedData.inputcommand.function
+                        }
+
+                    }
+                    todayRes = {};
+                    todayRes.temperature = inputTemp;
+                    sensorTemperature.tc = todayRes;//User Temperature
+
+                    dynamicELe('todayRes', todayRes, event.currentTarget.innerText);
+                    //req  UI Data and Sensor Data 
+                    $.post("http://54.169.232.41:3000/sensorDetails", sensorTemperature, function(resultRes, resstatus) {
+                      //Above API used to store data into the database like new sensed Data 
+                      dynamicELe('resultRes', resultRes, event.currentTarget.innerText);
+                    });
+                })
+
+            }
+        });
+
+    });
+</script>
+
+</html>
